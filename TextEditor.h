@@ -165,6 +165,7 @@ public:
 		Keywords mKeywords;
 		Identifiers mIdentifiers;
 		Identifiers mPreprocIdentifiers;
+		Identifiers mLabels;
 		std::string mCommentStart, mCommentEnd, mSingleLineComment;
 		char mPreprocChar;
 		bool mAutoIndentation;
@@ -180,6 +181,7 @@ public:
 		{
 		}
 
+		static const LanguageDefinition& ASM8085();
 		static const LanguageDefinition& CPlusPlus();
 		static const LanguageDefinition& HLSL();
 		static const LanguageDefinition& GLSL();
@@ -204,9 +206,13 @@ public:
 	TextEditor();
 	~TextEditor();
 
-	void SetLanguageDefinition(const LanguageDefinition& aLanguageDef);
+	void SetLanguageDefinition(LanguageDefinition& aLanguageDef);
 	const char* GetLanguageDefinitionName() const;
-
+	inline LanguageDefinition* GetLanguageDefinition()
+	{
+		return mLanguageDefinition;
+	}
+	
 	const Palette& GetPalette() const { return mPaletteBase; }
 	void SetPalette(const Palette& aValue);
 
@@ -481,7 +487,7 @@ private:
 
 	Palette mPaletteBase;
 	Palette mPalette;
-	const LanguageDefinition* mLanguageDefinition = nullptr;
+	LanguageDefinition* mLanguageDefinition = nullptr;
 	RegexList mRegexList;
 
 	bool mCheckComments;

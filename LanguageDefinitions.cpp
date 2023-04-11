@@ -388,6 +388,92 @@ static bool TokenizeLuaStylePunctuation(const char* in_begin, const char* in_end
 	return false;
 }
 
+const TextEditor::LanguageDefinition& TextEditor::LanguageDefinition::ASM8085()
+{
+	static bool inited = false;
+	static LanguageDefinition langDef;
+	if (!inited)
+	{
+		static const char* const keywords[] = {
+			"NOP", "LXI", "STAX", "INX", "INR", "DCR", "MVI", "RLC", "DAD", "LDAX", "DCX", "RRC", "RAL", "RAR", "RIM", "SHLD",
+			"DAA", "LHLD", "CMA", "SIM", "STA", "STC", "LDA", "CMC", "MOV", "HLT", "ADD", "ADC", "SUB", "SBB", "ANA", "XRA",
+			"ORA", "CMP", "RNZ", "POP", "JNZ", "JMP", "CNZ", "PUSH", "ADI", "RST", "RZ", "RET", "JZ", "CZ", "CALL", "ACI",
+			"RNC", "JNC", "OUT", "CNC", "SUI", "RC", "JC", "IN", "CC", "SBI", "RPO", "JPO", "XTHL", "CPO", "ANI", "RPE",
+			"PCHL", "JPE", "XCHG", "CPE", "XRI", "RP", "JP", "DI", "CP", "ORI", "RM", "SPHL", "JM", "EI", "CM", "CPI",
+
+			"DSUB"
+		};
+
+		for (auto& k : keywords)
+			langDef.mKeywords.insert(k);
+
+		static const char* const Registers[] = {
+			"A","B","C","D","E","H","L","M", "PSW",
+		};
+
+		static const char* const Predefines[] = {
+			"CODE", "STDM", "DCD", "STDC", "BEEP", "BEEPFD", "CLEARDISPLAY", "KIND",
+
+			"RST0", "RST1", "RST2", "RST3", "RST4", "RST5", "RST6", "RST7", "RST45", "RST55", "RST65", "RST75"
+		};
+
+		static const char* const PreProcIdentifiers[] = {
+			"EQU", "MACRO", "ENDM", "DB", "DW", "ORG",
+			"IF", "ELSE", "ENDIF",
+			"EQ", "NEQ", "LT", "LTE", "GT", "GTE",
+
+		};
+
+		for (auto& k : Registers)
+		{
+			Identifier id;
+			//id.mDeclaration = "Register";
+			langDef.mIdentifiers.insert(std::make_pair(std::string(k), id));
+		}
+
+		for (auto& k : Predefines)
+		{
+			Identifier id;
+			//id.mDeclaration = "Predefined Memory Location";
+			langDef.mIdentifiers.insert(std::make_pair(std::string(k), id));
+		}
+
+		for (auto& k : PreProcIdentifiers)
+		{
+			Identifier id;
+			//id.mDeclaration = "Predefined Memory Location";
+			langDef.mPreprocIdentifiers.insert(std::make_pair(std::string(k), id));
+		}
+
+		Identifier id;
+		//id.mDeclaration = "INTR interrupt calls here.";
+		langDef.mIdentifiers.insert(std::make_pair(std::string("INTR_ROUTINE"), id));
+
+		langDef.mTokenRegexStrings.push_back(std::make_pair<std::string, PaletteIndex>("[a-zA-Z_][a-zA-Z0-9_]*", PaletteIndex::Identifier));
+		langDef.mTokenRegexStrings.push_back(std::make_pair<std::string, PaletteIndex>("[a-zA-Z0-9_]+:", PaletteIndex::CharLiteral));
+		langDef.mTokenRegexStrings.push_back(std::make_pair<std::string, PaletteIndex>("L?\\\"(\\\\.|[^\\\"])*\\\"", PaletteIndex::String));
+		langDef.mTokenRegexStrings.push_back(std::make_pair<std::string, PaletteIndex>("\\\'[^\\\']\\\'", PaletteIndex::String));
+		langDef.mTokenRegexStrings.push_back(std::make_pair<std::string, PaletteIndex>("\\b([0-9]|[a-fA-F])+[hH]\\b", PaletteIndex::Number));
+		langDef.mTokenRegexStrings.push_back(std::make_pair<std::string, PaletteIndex>("\\b([0-1]+)[bB]\\b", PaletteIndex::Number));
+		langDef.mTokenRegexStrings.push_back(std::make_pair<std::string, PaletteIndex>("\\b([0-9])+\\b", PaletteIndex::Number));
+		langDef.mTokenRegexStrings.push_back(std::make_pair<std::string, PaletteIndex>("[a-zA-Z0-9_]+ (?=equ|EQU)", PaletteIndex::Preprocessor));
+		langDef.mTokenRegexStrings.push_back(std::make_pair<std::string, PaletteIndex>("(?<=equ|EQU) [a-zA-Z0-9_]+", PaletteIndex::Preprocessor));
+
+		langDef.mCommentStart = "/dasfafd*";
+		langDef.mCommentEnd = "*asdfafsd/";
+		langDef.mSingleLineComment = ";";
+
+		langDef.mCaseSensitive = false;
+		langDef.mAutoIndentation = true;
+
+		langDef.mName = "8085 Assembly";
+
+		inited = true;
+	}
+	return langDef;
+}
+
+
 const TextEditor::LanguageDefinition& TextEditor::LanguageDefinition::CPlusPlus()
 {
 	static bool inited = false;

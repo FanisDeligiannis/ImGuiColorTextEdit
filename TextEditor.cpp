@@ -57,7 +57,7 @@ TextEditor::~TextEditor()
 {
 }
 
-void TextEditor::SetLanguageDefinition(const LanguageDefinition& aLanguageDef)
+void TextEditor::SetLanguageDefinition(LanguageDefinition& aLanguageDef)
 {
 	mLanguageDefinition = &aLanguageDef;
 	mRegexList.clear();
@@ -2951,6 +2951,8 @@ void TextEditor::ColorizeRange(int aFromLine, int aToLine)
 							token_color = PaletteIndex::KnownIdentifier;
 						else if (mLanguageDefinition->mPreprocIdentifiers.count(id) != 0)
 							token_color = PaletteIndex::PreprocIdentifier;
+						else if (mLanguageDefinition->mLabels.count(id) != 0)
+							token_color = PaletteIndex::CharLiteral;
 					}
 					else
 					{
