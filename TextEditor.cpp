@@ -874,8 +874,10 @@ void TextEditor::HandleKeyboardInputs(bool aParentIsFocused)
 {
 	if (ImGui::IsWindowFocused() || aParentIsFocused)
 	{
-		if (ImGui::IsWindowHovered())
+		float cursorx = ImGui::GetMousePos().x - ImGui::GetCursorScreenPos().x;
+		if (ImGui::IsWindowHovered() && cursorx > startOfText - ImGui::GetCursorScreenPos().x)
 			ImGui::SetMouseCursor(ImGuiMouseCursor_TextInput);
+
 		//ImGui::CaptureKeyboardFromApp(true);
 
 		ImGuiIO& io = ImGui::GetIO();
@@ -1170,6 +1172,16 @@ void TextEditor::Render(bool aParentIsFocused)
 				drawList->AddRectFilled(start, end, mPalette[(int)PaletteIndex::Breakpoint]);
 			}
 
+			//Custom current line of execution drawing.
+			if (lineNo == CurrentLine)
+			{
+				Coordinates coord = TextEditor::Coordinates(lineNo, 0);
+				SetCursorPosition(coord);
+
+				auto end = ImVec2(lineStartScreenPos.x + contentSize.x + 2.0f * scrollX, lineStartScreenPos.y + mCharAdvance.y);
+				drawList->AddRectFilled(start, end, 0xff707000);
+			}
+
 			// Draw error markers
 			auto errorIt = mErrorMarkers.find(lineNo + 1);
 			if (errorIt != mErrorMarkers.end())
@@ -1193,6 +1205,51 @@ void TextEditor::Render(bool aParentIsFocused)
 
 			// Draw line number (right aligned)
 			snprintf(buf, 16, "%d  ", lineNo + 1);
+
+			//Breakpoint button on line number + circle
+			ImVec2 size = ImGui::GetFont()->CalcTextSizeA(ImGui::GetFontSize(), FLT_MAX, -1.0f, buf, nullptr, nullptr);
+			size.x += mLeftMargin;
+
+			ImGui::SetCursorScreenPos(lineStartScreenPos);
+
+			if (ImGui::InvisibleButton(buf, size, ImGuiButtonFlags_MouseButtonMask_))
+			{
+				if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Space)))
+				{
+
+				}
+				else
+				{
+					_BreakpointsChanged = true;
+
+					bool found = false;
+					for (int i = 0; i < _Breakpoints.size(); i++)
+					{
+						if (_Breakpoints.at(i) == lineNo + 1)
+						{
+							_Breakpoints.erase(_Breakpoints.begin() + i);
+							found = true;
+						}
+					}
+
+					if (!found)
+					{
+						_Breakpoints.push_back(lineNo + 1);
+					}
+				}
+			}
+
+			ImVec2 finalRect = ImVec2(lineStartScreenPos.x + size.x, lineStartScreenPos.y + size.y);
+
+			for (int i = 0; i < _Breakpoints.size(); i++)
+			{
+				if (_Breakpoints.at(i) == lineNo + 1)
+				{
+					drawList->AddRectFilled(lineStartScreenPos, finalRect, IM_COL32(255, 0, 0, 155), 0);
+				}
+			}
+
+			startOfText = finalRect.x;
 
 			auto lineNoWidth = ImGui::GetFont()->CalcTextSizeA(ImGui::GetFontSize(), FLT_MAX, -1.0f, buf, nullptr, nullptr).x;
 			drawList->AddText(ImVec2(lineStartScreenPos.x + mTextStart - lineNoWidth, lineStartScreenPos.y), mPalette[(int)PaletteIndex::LineNumber], buf);

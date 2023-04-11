@@ -14,6 +14,15 @@
 class IMGUI_API TextEditor
 {
 public:
+	bool SaveFile = false;
+	bool SaveFileAs = false;
+	int CurrentLine = -1;
+
+	float startOfText = 0;
+
+	std::vector<int> _Breakpoints;
+	bool _BreakpointsChanged = false;
+
 	enum class PaletteIndex
 	{
 		Default,
