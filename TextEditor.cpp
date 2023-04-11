@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <chrono>
 #include <string>
-#include <regex>
 #include <cmath>
 
 #include "TextEditor.h"
@@ -63,7 +62,9 @@ void TextEditor::SetLanguageDefinition(LanguageDefinition& aLanguageDef)
 	mRegexList.clear();
 
 	for (const auto& r : mLanguageDefinition->mTokenRegexStrings)
-		mRegexList.push_back(std::make_pair(std::regex(r.first, std::regex_constants::optimize), r.second));
+		mRegexList.push_back(std::make_pair(boost::regex(r.first, boost::regex_constants::optimize), r.second));
+		//mRegexList.push_back(std::make_pair(std::regex(r.first, std::regex_constants::optimize), r.second));
+
 
 	Colorize();
 }
@@ -2922,11 +2923,11 @@ void TextEditor::Colorize(int aFromLine, int aLines)
 
 void TextEditor::ColorizeRange(int aFromLine, int aToLine)
 {
-	if (mLines.empty() || aFromLine >= aToLine || mLanguageDefinition == nullptr)
+	if (mLines.empty() || aFromLine >= aToLine)
 		return;
 
 	std::string buffer;
-	std::cmatch results;
+	boost::cmatch results;
 	std::string id;
 
 	int endLine = std::max(0, std::min((int)mLines.size(), aToLine));
@@ -2950,57 +2951,38 @@ void TextEditor::ColorizeRange(int aFromLine, int aToLine)
 
 		auto last = bufferEnd;
 
-		for (auto first = bufferBegin; first != last; )
+		for (auto& p : mRegexList)
 		{
 			const char* token_begin = nullptr;
 			const char* token_end = nullptr;
 			PaletteIndex token_color = PaletteIndex::Default;
 
-			bool hasTokenizeResult = false;
+			boost::cmatch c;
 
-			if (mLanguageDefinition->mTokenize != nullptr)
+			int k = 0;
+
+			auto first = bufferBegin;
+
+			while (boost::regex_search(first, last, c, p.first, boost::regex_constants::match_prev_avail) && first < last)
 			{
-				if (mLanguageDefinition->mTokenize(first, last, token_begin, token_end, token_color))
-					hasTokenizeResult = true;
-			}
+				first = c[0].second;
+				k++;
 
-			if (hasTokenizeResult == false)
-			{
-				// todo : remove
-				//printf("using regex for %.*s\n", first + 10 < last ? 10 : int(last - first), first);
+				auto& v = *c.begin();
+				token_begin = v.first;
+				token_end = v.second;
+				token_color = p.second;
 
-				for (const auto& p : mRegexList)
-				{
-					if (std::regex_search(first, last, results, p.first, std::regex_constants::match_continuous))
-					{
-						hasTokenizeResult = true;
-
-						auto& v = *results.begin();
-						token_begin = v.first;
-						token_end = v.second;
-						token_color = p.second;
-						break;
-					}
-				}
-			}
-
-			if (hasTokenizeResult == false)
-			{
-				first++;
-			}
-			else
-			{
 				const size_t token_length = token_end - token_begin;
 
 				if (token_color == PaletteIndex::Identifier)
 				{
 					id.assign(token_begin, token_end);
 
-					// todo : allmost all language definitions use lower case to specify keywords, so shouldn't this use ::tolower ?
 					if (!mLanguageDefinition->mCaseSensitive)
 						std::transform(id.begin(), id.end(), id.begin(), ::toupper);
 
-					if (!line[first - bufferBegin].mPreprocessor)
+					if (!line[first - bufferBegin - 1].mPreprocessor)
 					{
 						if (mLanguageDefinition->mKeywords.count(id) != 0)
 							token_color = PaletteIndex::Keyword;
@@ -3020,8 +3002,6 @@ void TextEditor::ColorizeRange(int aFromLine, int aToLine)
 
 				for (size_t j = 0; j < token_length; ++j)
 					line[(token_begin - bufferBegin) + j].mColorIndex = token_color;
-
-				first = token_end;
 			}
 		}
 	}

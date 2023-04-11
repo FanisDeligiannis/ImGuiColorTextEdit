@@ -8,7 +8,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <map>
-#include <regex>
+#include <boost/regex.hpp>
 #include "imgui.h"
 
 class IMGUI_API TextEditor
@@ -356,7 +356,7 @@ public:
 	void ImGuiDebugPanel(const std::string& panelName = "Debug");
 	void UnitTests();
 private:
-	typedef std::vector<std::pair<std::regex, PaletteIndex>> RegexList;
+	typedef std::vector<std::pair<boost::regex, PaletteIndex>> RegexList;
 
 	struct Cursor
 	{
