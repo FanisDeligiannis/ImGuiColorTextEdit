@@ -346,6 +346,7 @@ public:
 	void ClearSelections();
 	void SelectNextOccurrenceOf(const char* aText, int aTextSize, int aCursor = -1);
 	void AddCursorForNextOccurrence();
+	void AddCursorForAllOccurrences();
 
 	static const Palette& GetMarianaPalette();
 	static const Palette& GetDarkPalette();

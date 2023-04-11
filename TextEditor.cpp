@@ -954,6 +954,8 @@ void TextEditor::HandleKeyboardInputs(bool aParentIsFocused)
 			SelectAll();
 		else if (isShortcut && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_D)))
 			AddCursorForNextOccurrence();
+		else if (isShiftShortcut && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_D)))
+			AddCursorForAllOccurrences();
         else if (!IsReadOnly() && !alt && !ctrl && !shift && !super && (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter)) || ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_KeypadEnter))))
 			EnterCharacter('\n', false);
 		else if (!IsReadOnly() && !alt && !ctrl && !super && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Tab)))
@@ -2695,6 +2697,39 @@ void TextEditor::AddCursorForNextOccurrence()
 	MergeCursorsIfPossible();
 	EnsureCursorVisible();
 }
+
+void TextEditor::AddCursorForAllOccurrences()
+{
+	const Cursor& initialCursor = mState.mCursors[mState.GetLastAddedCursorIndex()];
+	Coordinates cursorPos = initialCursor.mCursorPosition;
+
+	while (1)
+	{
+		const Cursor& currentCursor = mState.mCursors[mState.GetLastAddedCursorIndex()];
+		if (currentCursor.mSelectionStart == currentCursor.mSelectionEnd)
+			return;
+
+		std::string selectionText = GetText(currentCursor.mSelectionStart, currentCursor.mSelectionEnd);
+		Coordinates nextStart, nextEnd;
+		if (!FindNextOccurrence(selectionText.c_str(), selectionText.length(), currentCursor.mSelectionEnd, nextStart, nextEnd))
+			return;
+
+		for (Cursor& cursor : mState.mCursors)
+		{
+			if (cursor.mSelectionStart == nextStart && cursor.mSelectionEnd == nextEnd)
+				return;
+		}
+
+		mState.AddCursor();
+		mState.mCursors[mState.mCurrentCursor].mInteractiveStart = nextStart;
+		mState.mCursors[mState.mCurrentCursor].mCursorPosition = mState.mCursors[mState.mCurrentCursor].mInteractiveEnd = nextEnd;
+		SetSelection(mState.mCursors[mState.mCurrentCursor].mInteractiveStart, mState.mCursors[mState.mCurrentCursor].mInteractiveEnd, mSelectionMode, -1, true);
+		mState.SortCursorsFromTopToBottom();
+		MergeCursorsIfPossible();
+		EnsureCursorVisible();
+	}
+}
+
 
 const TextEditor::Palette& TextEditor::GetDarkPalette()
 {
