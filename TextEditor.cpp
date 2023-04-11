@@ -958,6 +958,11 @@ void TextEditor::HandleKeyboardInputs(bool aParentIsFocused)
 			EnterCharacter('\n', false);
 		else if (!IsReadOnly() && !alt && !ctrl && !super && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Tab)))
 			EnterCharacter('\t', shift);
+		else if (!IsReadOnly() && ctrl && !shift && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_S)))
+			SaveFile = true;
+		else if (!IsReadOnly() && ctrl && shift && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_S)))
+			SaveFileAs = true;
+
 		if (!IsReadOnly() && !io.InputQueueCharacters.empty() && !ctrl && !super)
 		{
 			for (int i = 0; i < io.InputQueueCharacters.Size; i++)
@@ -1816,6 +1821,11 @@ void TextEditor::OnCursorPositionChanged(int aCursor)
 void TextEditor::SetColorizerEnable(bool aValue)
 {
 	mColorizerEnabled = aValue;
+}
+
+void TextEditor::ForceColorizeAll()
+{
+	ColorizeRange(0, GetTotalLines());
 }
 
 void TextEditor::SetCursorPosition(const Coordinates& aPosition, int aCursor)

@@ -1,4 +1,4 @@
-#include <TextEditor.h>
+#include <../imgui_text_editor/TextEditor.h>
 
 void TextEditor::UnitTests()
 {

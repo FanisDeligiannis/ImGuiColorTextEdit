@@ -36,3 +36,8 @@ Save/TextEditor.h
 Save/TextEditor.cpp
 
 *.vcxproj
+
+bin
+bin/*
+bin-int
+bin-int/*
