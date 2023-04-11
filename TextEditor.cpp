@@ -964,6 +964,8 @@ void TextEditor::HandleKeyboardInputs(bool aParentIsFocused)
 			SaveFile = true;
 		else if (!IsReadOnly() && ctrl && shift && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_S)))
 			SaveFileAs = true;
+		else if (!IsReadOnly() && ctrl && !shift && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Slash)))
+			CommentLines();
 
 		if (!IsReadOnly() && !io.InputQueueCharacters.empty() && !ctrl && !super)
 		{
@@ -1691,6 +1693,95 @@ void TextEditor::ChangeCurrentLinesIndentation(bool aIncrease)
 		AddUndo(u);
 }
 
+void TextEditor::CommentLines()
+{
+	UndoRecord u;
+	u.mBefore = mState;
+
+	for (int cursorid = 0; cursorid < mState.mCursors.size(); cursorid++)
+	{
+		Cursor& cursor = mState.mCursors[cursorid];
+
+		if (cursor.mSelectionEnd > cursor.mSelectionStart)
+		{
+			if (cursor.mSelectionStart.mLine == cursor.mSelectionEnd.mLine)
+			{
+
+				std::string& selectedText = GetSelectedText(cursorid);
+				if (selectedText.length() > 0 && selectedText[0] != ';')
+				{
+					AddGlyphToLine(cursor.mSelectionStart.mLine, GetCharacterIndexL(cursor.mSelectionStart), Glyph(';', PaletteIndex::Comment));
+					cursor.mSelectionEnd.mColumn++;
+					//ForceColorizeAll();
+					mCheckComments = true;
+					ColorizeRange(std::max(0, cursor.mSelectionStart.mLine - 2), cursor.mSelectionStart.mLine + 1);
+
+					Coordinates end = { cursor.mSelectionStart.mLine, cursor.mSelectionStart.mColumn + 1 };
+
+					u.mOperations.push_back({ ";", cursor.mSelectionStart, end, UndoOperationType::Add });
+				}
+				else
+				{
+					int idx = GetCharacterIndexL(cursor.mSelectionStart);
+					RemoveGlyphsFromLine(cursor.mSelectionStart.mLine, idx, idx+1);
+					cursor.mSelectionEnd.mColumn--;
+
+					mCheckComments = true;
+					ColorizeRange(std::max(0, cursor.mSelectionStart.mLine - 2), cursor.mSelectionStart.mLine + 1);
+				
+					Coordinates end = { cursor.mSelectionStart.mLine, cursor.mSelectionStart.mColumn + 1 };
+
+					u.mOperations.push_back({ ";", cursor.mSelectionStart, end, UndoOperationType::Delete });
+				}
+			}
+			else
+			{
+				Coordinates firstLineCoords = { cursor.mSelectionStart.mLine, 0 };
+				Coordinates firstLineEndCoords = { cursor.mSelectionStart.mLine, GetLineMaxColumn(cursor.mSelectionStart.mLine) };
+
+				std::string& firstLine = GetText(firstLineCoords, firstLineEndCoords);
+				if (firstLine.length() > 0 && firstLine[0] == ';')
+				{
+					for (int i = cursor.mSelectionStart.mLine; i <= cursor.mSelectionEnd.mLine; i++)
+					{
+						RemoveGlyphsFromLine(i, 0, 1);
+					
+						if (i == cursor.mSelectionStart.mLine)
+							cursor.mSelectionStart.mColumn--;
+					
+						Coordinates start = { i, 0 };
+						Coordinates end = { i, 1 };
+
+						u.mOperations.push_back({ ";", start, end, UndoOperationType::Delete });
+					}
+				}
+				else
+				{
+					for (int i = cursor.mSelectionStart.mLine; i <= cursor.mSelectionEnd.mLine; i++)
+					{
+						AddGlyphToLine(i, 0, Glyph(';', PaletteIndex::Default));
+
+						if (i == cursor.mSelectionStart.mLine)
+							cursor.mSelectionStart.mColumn++;
+
+						Coordinates start = { i, 0 };
+						Coordinates end = { i, 1 };
+
+						u.mOperations.push_back({ ";", start, end, UndoOperationType::Add });
+					}
+				}
+
+				mCheckComments = true;
+				ColorizeRange(std::max(0, cursor.mSelectionStart.mLine - 2), cursor.mSelectionEnd.mLine + 1);
+
+			}
+		}
+	}
+
+	if (u.mOperations.size() > 0)
+		AddUndo(u);
+}
+
 void TextEditor::EnterCharacter(ImWchar aChar, bool aShift)
 {
 	assert(!mReadOnly);
@@ -1727,7 +1818,17 @@ void TextEditor::EnterCharacter(ImWchar aChar, bool aShift)
 		{
 			if (lineText[idx-1] == '\t')
 			{
+				auto pos = GetActualCursorCoordinates(mState.mCurrentCursor);
+
+				Coordinates start = { pos.mLine, pos.mColumn - 1 };
+
+				UndoRecord shiftTab;
+				shiftTab.mBefore = mState;
+				shiftTab.mOperations.push_back({ "\t", start, pos, UndoOperationType::Delete});
+				
 				RemoveGlyphsFromLine(currentCursor.mCursorPosition.mLine, idx - 1, idx);
+
+				AddUndo(shiftTab);
 			}
 		}
 
