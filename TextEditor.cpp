@@ -1668,7 +1668,7 @@ void TextEditor::ChangeCurrentLinesIndentation(bool aIncrease)
 				rangeEnd = end;
 				addedText = GetText(start, end);
 			}
-			else
+			else if (end.mLine != 0)
 			{
 				end = Coordinates(originalEnd.mLine, 0);
 				rangeEnd = Coordinates(end.mLine - 1, GetLineMaxColumn(end.mLine - 1));
