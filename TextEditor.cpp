@@ -1698,15 +1698,40 @@ void TextEditor::EnterCharacter(ImWchar aChar, bool aShift)
 	bool hasSelection = HasSelection();
 	bool anyCursorHasMultilineSelection = false;
 	for (int c = mState.mCurrentCursor; c > -1; c--)
+	{
 		if (mState.mCursors[c].mSelectionStart.mLine != mState.mCursors[c].mSelectionEnd.mLine)
 		{
 			anyCursorHasMultilineSelection = true;
 			break;
 		}
+	}
+
 	bool isIndentOperation = hasSelection && anyCursorHasMultilineSelection && aChar == '\t';
 	if (isIndentOperation)
 	{
 		ChangeCurrentLinesIndentation(!aShift);
+		return;
+	}
+
+	if (aChar == '\t' && aShift && !hasSelection)
+	{
+		Cursor& currentCursor = mState.mCursors[mState.mCurrentCursor];
+
+		if (currentCursor.mCursorPosition.mColumn == 0)
+			return;
+
+		std::string lineText = GetCurrentLineText();
+		int idx = GetCharacterIndexL(currentCursor.mCursorPosition);
+		
+		if (idx > 0)
+		{
+			if (lineText[idx-1] == '\t')
+			{
+				RemoveGlyphsFromLine(currentCursor.mCursorPosition.mLine, idx - 1, idx);
+			}
+		}
+
+
 		return;
 	}
 
